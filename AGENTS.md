@@ -22,6 +22,8 @@
 - TokenHub 按当前连接环境的已部署提交只读远程仓库 NanoLinker/tokenhub，标记准确提交；不以本地旧 tokenhub-main 为依据，不擅自修改 TokenHub。
 - 机器人插件与独立 MCP 服务分别列出能力。工具是否可用，以实际注册的工具及其 schema 为准，不能把底层函数或另一服务的能力直接写成当前机器人已支持。
 - 区分 IM 平台事件权限、IM 用户 OAuth、imapp MCP OAuth 和智能平台 Responses OAuth；凭证不能混用。
+- 双向授权的两次 OAuth 流程（TokenHub 获取 imapp MCP 授权、imapp 获取智能平台 Responses 授权）都必须遵循对应标准协议，不得为定时任务、结果通知或平台路由随意增加业务参数；该约束覆盖授权请求、令牌请求、回调和标准协议消息，不限于请求体。合法标准扩展须有明确规范依据，不能把自定义业务字段伪装成标准扩展。
+- 定时任务回调地址、接收服务登记、投递位置及业务关联必须通过独立且鉴权的业务配置/接口和服务端持久映射管理，不得借用 OAuth redirect_uri 作为任务通知地址，不得将这些配置塞入上述标准授权流程。现有授权不自动授予新增任务管理或通知权限；新增能力须明确权限边界，保持凭证用途隔离。
 - Chat SDK 是进程内消息模型；跨服务传的是序列化消息。不得在 OAuth、MCP、Chat SDK、Responses 的标准请求体中增加业务字段。
 - botId/openId/groupId/threadId/conversationId 各自有边界，公网 bot 路由使用不透明 routeId。说明群聊时必须写明实际付费授权和群会话隔离方式。
 - “默认本平台”是当前每轮 instructions 规则，不能写成已经实现工具网关的强制隔离；未支持的能力不能伪装为可调用。
