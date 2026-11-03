@@ -7,7 +7,7 @@
 - 规则：持久状态的内存发布必须发生在文件提交成功之后；外部发送前先持久认领逻辑投递及稳定发送ID，记录失败就不发送。
 - 原因与事件：旧 FileTargetStore 先改内存，落盘失败后重试会被假去重；微信旧实现没有跨进程投递认领。此类数据一致性风险不能依赖成功路径测试。
 - 范围与修复：imapp 的16个持久写入口共用候选状态提交；微信插件持久 journal 保留成功／处理中／未知。不额外宣称断电 fsync 或上游 exactly-once。
-- 新审查补充（未修）：另一处`GroupMessageIntents`仍存在引用泄漏与落盘前发布问题，确认卡还能把已外发后的持久化故障显示为取消。只把put改成先写盘不够：get／pending和put输入均须隔离可变引用，或调用方始终不可变更新；一个store的专项不能代替其它store的检查。实际完整callback合成证据见`/var/tmp/im-code-control-review-20261104T0100/dingtalk/review-summary.json`，不宣称单击双发。
+- 同类边界修复：`GroupMessageIntents`的get／pending与put输入均隔离可变引用，rename后才发布；实际外发后动作／原卡落盘失败保持unknown。仅改put顺序不能修复引用泄漏，一个store的专项也不能代替其它store。完整callback与10个断言负例见本轮`checks/dingtalk-fix-summary.json`，不宣称单击双发。
 - 验证：101发布根 `/var/tmp/im-nine-fixes-20261103T143500Z`，`checks/storage-default-summary.json` 的34项故障回归通过，旧行为34项断言失败；微信重复／重启／写入失败见 `checks/wechat-p1-summary.json`。
 
 ## 未知结果保护必须到每次外发边界（2026-11-04）
@@ -16,7 +16,7 @@
 - 原因与事件：本轮交叉复核发现同一根因的三个遗漏分支：恢复已有待发记录、退避期间出现未知，以及发送后回执和unknown持久化均失败。它们可通过旧记录／新ID回退绕过只在入口的保护，按一个事件记录。
 - 范围与修复：Outbox每次发送前核同Run未决状态；未决优先于最终卡回退；durable delivering也阻止再次发送。微信两入口共用iLink未知分类，插件持久去重，独立MCP错误说明不得诱导重发。
 - 验证：`checks/outbox-document-summary.json`、`checks/cross-review-p1-outbox-at.json`、`checks/wechat-p1-lessons.json`。Outbox19项通过，恢复旧行为17/18项断言失败，另有逐次发送守卫竞态负例；微信响应丢失、部分成功及journal绕过均有失败负例。observer保持真实unknown，不伪装成功。
-- 适用层次补充（未修）：外层Outbox冻结不代表适配器内部安全；飞书原卡更新已生效但响应丢失时，内部catch仍新发消息并向外返回成功，外层无法获知此前未知。应在真实外发边界区分明确拒绝与未知，复用原目标的只读核验。证据为同一审查根`wechat-feishu/summary.json`，仅合成故障复现。
+- 适用层次补充：外层Outbox冻结不代表适配器内部安全。飞书原卡PATCH或CardKit变更未知时禁止新发／普通PATCH兜底，队列也须阻断；安全unknown向imapp传播并持久冻结。明确卡体拒绝保留兼容回退。回执落盘故障和并发覆盖见本轮`checks/feishu-wechat-control-summary.json`。
 
 ## 公共异步流程必须保留异常前状态（2026-11-03）
 
@@ -36,8 +36,9 @@
 
 - 规则：默认测试须进入现行鉴权及业务路径；不靠删除、跳过或削弱断言掩盖旧夹具失配。发布检查对应最终镜像源码及实际启动命令，候选测试不能替代运行产物核验。
 - 原因与事件：imapp旧45项中24项失败，混有旧鉴权／文案／等待夹具，专项通过不足以证明默认兼容；动态npx和启动安装让执行器漂移。部署时DEV Compose省略原项目名触发名称冲突，运行实例身份也必须来自实际配置。
+- 同次验证补充：运行镜像曾遗漏已验证的钉钉专项夹具／微信更新夹具；应以实际镜像src测试和源码SHA共同证明，不能只核生产文件。恢复夹具须先核来源与生产基线，不删除断言；根目录遗留bak测试加载失败与src测试失败分别报告。本轮对应`checks/*restored-regression-fixtures.json`及`release-image-verification.json`。
 - 范围与修复：保留45项并按实际契约更新、补鉴权拒绝；固定运行时、依赖和飞书tsx，取消启动联网安装；Compose沿用原dingtalk-dev/wechat-dev项目，独立MCP按实际inspect恢复配置。
-- 验证：实际imapp镜像132/132、两微信32/32与8/8、钉钉专项334/334及断网冷启动；源码SHA与部署后环境／挂载／健康核验见 `release/deployment-receipt.json` 和 `checks/*postdeploy-verification.json`。钉钉全量仍保留同名40项失败及4项前端类型错误，合成验证不替代真实客户端／长期稳定性。部署项目名冲突没有停止原钉钉服务，按原名完成切换后健康通过。
+- 验证：前次实际imapp镜像132/132、两微信32/32与8/8、钉钉专项334/334及断网冷启动；源码SHA与部署后环境／挂载／健康核验见 `release/deployment-receipt.json` 和 `checks/*postdeploy-verification.json`。钉钉全量仍保留同名40项失败及4项前端类型错误，合成验证不替代真实客户端／长期稳定性。部署项目名冲突没有停止原钉钉服务，按原名完成切换后健康通过。
 
 ## 模型执行与历史结果判断的责任边界（2026-11-04，用户暂缓）
 
@@ -45,4 +46,12 @@
 - 事实保留：截图普通补参续接后模型没有调用发送，追问后又把数小时前同正文记录误认本轮成功；后一条专用确认卡成功属于不同请求。此前只读证据在101 `/var/tmp/im-form-flow-20261104T0043/checks/`。
 - 当前归属与范围：用户明确认定上述事件是模型问题，先不处理；不再称为本项目当前业务缺陷或普通补参改造重点。通用卡保持模型续接／授权边界，不改TokenHub，不补发旧请求。此前“本项目应优先接管该截图流程”的表述以本条为准。
 - 当前工程审查仅覆盖已有明确动作、任务号或对象后的确定性步骤：持久提交、错误分类、同任务结果核验、查询截止与恢复。检查必须找到实际调用方和可复用实现；按适配层现有契约验收，不统一强加不存在的messageId或私有协议字段，不另建通用工作流框架。
-- 状态：本轮仅审查与隔离合成验证，业务候选未实施／未部署；详细优先级与验证边界见[#10](https://github.com/AcornFZA/word/issues/10)，当前重点见[#13](https://github.com/AcornFZA/word/issues/13)。准则原则由用户明确要求写入，不能把同日分支／追问当作多次独立事件。
+- 状态：确定性工程修复与隔离回归已实施，实际发布状态见[#9](https://github.com/AcornFZA/word/issues/9)；模型暂缓范围不变。实现与验证边界见[#10](https://github.com/AcornFZA/word/issues/10)，当前重点见[#13](https://github.com/AcornFZA/word/issues/13)。准则原则由用户明确要求写入，不能把同日分支／追问当作多次独立事件。
+
+## 固定截止与持久重试必须可跨进程验证（2026-11-04）
+
+- 规则：固定原任务ID、输入和重试次数／截止；异常、pending与重启都不能延长预算。截止检查包含授权刷新后的剩余时间，异常也记录退避，让其它任务继续。
+- 原因与修复：旧摘要GET异常在截止前return，长期占队首；现为每Response持久600秒、错误15秒／pending5秒退避。微信收件按用户确定最多5次总提交、三分钟内发起新尝试，先写批次／次数再POST，重启继续累计；换授权终止旧批，所有消息终态后原子推进游标。
+- 返工教训：冻结消息必须采用实际JSON传输表示，单纯structuredClone会令内存Date与磁盘字符串不一致；未知提交耗尽后的提示不能沿用“稍后再试”诱导新ID重放。等待响应取消也不能无界await。测试回调内的断言可能被生产catch吞掉，应尽量在回调外核可观察状态。
+- 验证：本轮 `/var/tmp/im-code-control-fix-20261104T0115/checks/` 的 `digest-control-summary.json`（337通过／13个断言负例）、`wechat-inbound-fix-summary.json`及`wechat-inbound-extra-summary.json`（微信59通过／11个断言负例）。三分钟是新尝试窗口，不是已在途请求或平台业务的完成SLA。
+
