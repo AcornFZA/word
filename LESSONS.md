@@ -40,6 +40,8 @@
 - 范围与修复：保留45项并按实际契约更新、补鉴权拒绝；固定运行时、依赖和飞书tsx，取消启动联网安装；Compose沿用原dingtalk-dev/wechat-dev项目，独立MCP按实际inspect恢复配置。
 - 验证：前次实际imapp镜像132/132、两微信32/32与8/8、钉钉专项334/334及断网冷启动；源码SHA与部署后环境／挂载／健康核验见 `release/deployment-receipt.json` 和 `checks/*postdeploy-verification.json`。钉钉全量仍保留同名40项失败及4项前端类型错误，合成验证不替代真实客户端／长期稳定性。部署项目名冲突没有停止原钉钉服务，按原名完成切换后健康通过。
 
+- 多用户候选复核补充：授权ID非空不等于已验证，`unverified:`迁移标记与当前configKey均需核验；跨语言授权代次实际为数值，不能让两侧mock共同假设字符串。已用实际加密FileTargetStore、HTTP helper及真实reader联调两用户，补拒绝与反向验证；证据 `/var/tmp/im-formal-monitor-sync-20261104/checks/imapp-personal-events-summary.json`、`imapp-reader-integration.log`。问题在候选审查中修正，不推断线上已发生越权。禁用微信的负例还须提供原本可用的完整映射，避免缺少夹具字段让移除守卫后仍不调用、掩盖测试遗漏；以实际零调用断言验证。
+
 ## 模型执行与历史结果判断的责任边界（2026-11-04，用户暂缓）
 
 - 通用原则：可确定的流程、授权、状态及回执核验优先由代码控制；这不意味着把所有模型语义决策改为硬编码，或将自由文本补参自动解释为执行授权。
@@ -55,3 +57,9 @@
 - 返工教训：冻结消息必须采用实际JSON传输表示，单纯structuredClone会令内存Date与磁盘字符串不一致；未知提交耗尽后的提示不能沿用“稍后再试”诱导新ID重放。等待响应取消也不能无界await。测试回调内的断言可能被生产catch吞掉，应尽量在回调外核可观察状态。
 - 验证：本轮 `/var/tmp/im-code-control-fix-20261104T0115/checks/` 的 `digest-control-summary.json`（337通过／13个断言负例）、`wechat-inbound-fix-summary.json`及`wechat-inbound-extra-summary.json`（微信59通过／11个断言负例）。三分钟是新尝试窗口，不是已在途请求或平台业务的完成SLA。
 
+## 监听恢复必须核对全部旧执行者（2026-11-04）
+
+- 规则：区分可以安全重建的正常结束与必须冻结的未知执行；主线程退出不能代表内部线程／子进程都已停止。先确认所有写入者结束，再读取最终清理状态；同进程换群／授权切换、冷启动和热恢复使用相同边界。
+- 原因与事件：正式多用户候选曾将同授权worker永久关闭，交叉复核遗漏其可恢复性；改为恢复后又发现内层listener仍可能晚写failed，过早读安全快照会绕过保护。同次候选评审已纠正，不重复计次、不称线上事故。
+- 范围与修复：登记锁下检查主线程、processor、session、consume／stderr／watcher及子进程全部退出；至少10秒退避，同绑定所有授权代次listener仅new／stopped且无cleanup_required才重建。旧unknown、撤销及未决投递保持，不靠换授权或重启绕过。
+- 验证：本次372项Python回归、Node14项及反向断言证据见 `/var/tmp/im-formal-monitor-sync-20261104/checks/test-summary.json` 和 `personal-events-cross-review.json`；部署状态见[#9](https://github.com/AcornFZA/word/issues/9)。AI复核仅补充实际测试与发布核验。
