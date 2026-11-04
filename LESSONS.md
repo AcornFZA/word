@@ -18,6 +18,8 @@
 - 验证：`checks/outbox-document-summary.json`、`checks/cross-review-p1-outbox-at.json`、`checks/wechat-p1-lessons.json`。Outbox19项通过，恢复旧行为17/18项断言失败，另有逐次发送守卫竞态负例；微信响应丢失、部分成功及journal绕过均有失败负例。observer保持真实unknown，不伪装成功。
 - 适用层次补充：外层Outbox冻结不代表适配器内部安全。飞书原卡PATCH或CardKit变更未知时禁止新发／普通PATCH兜底，队列也须阻断；安全unknown向imapp传播并持久冻结。明确卡体拒绝保留兼容回退。回执落盘故障和并发覆盖见本轮`checks/feishu-wechat-control-summary.json`。
 
+- 监控微信补充（同日同事件）：外层SQLite账本不能代替helper到实际HTTP的safe分类与稳定ID。现将同任务／分段／通道／授权范围的持久deliveryId贯通正文和Idempotency-Key；明确context_expired才rejected，丢回执／部分成功／超时仍unknown。自然摘要已实证钉钉sent与微信上下文拒绝；新入站短暂恢复后也可再次失效，不证明旧unknown未发、不推断固定TTL。旧unknown不重分类或补发，24条旧unknown／written已逐条核保持；发布与证据见[#9](https://github.com/AcornFZA/word/issues/9)。
+
 ## 公共异步流程必须保留异常前状态（2026-11-03）
 
 - 规则：抽取事件消费流程时，成功与抛异常都必须回传已发生的状态；每次调用有独立上下文，不能用外层闭包或旧快照猜测。
@@ -50,6 +52,10 @@
 
 - 可视化未知状态补充（2026-11-04）：加载中、读取失败、过期与明确断开必须分别展示，不能让空值落入“未连接”或“零故障”。网站v6发布截图暴露Dot数据尚未取到时被标为未连接；v7改为按显式状态展示，并保留缺日期/空统计的未知语义。9项前端数据回归与13项MCP回归通过，恢复旧默认值会由断言检出；UI与生产数据验证分开记录，见[#14](https://github.com/AcornFZA/word/issues/14)。
 
+- 实际运行边界补充（同日同事件）：PrivateTmp宿主status无live不代表无consumer；IPC ready／connected不等于AT实收。真实consumer的ProtectSystem及启动顺序与owner合成单元不同；缺失IPC根在strict namespace内创建失败，须由受控tmpfiles先建0700，再验证实际readonly constructor／connect。本次已证不需扩大RW。旧Docker HostConfig可能省略Init，Go模板须index读取并保留null，不能把缺省当false；v2在metadata迁移前安全拒绝后经真实只读验证修正。最终DEV范围已核但整机v3因其它容器漂移未过，不能改原baseline或伪造整体完成。见[#9](https://github.com/AcornFZA/word/issues/9)。
+- 业务错误与调用方契约补充（同日同事件）：HTTP200中的PAT_ORG_POLICY_DENIED不当超时／零结果／管理员没开；控制台允许且corp匹配、原profile随后自然恢复，原因仍未知。维护恢复按各调用方实际fresh proof.authority和已测兼容映射定位，审批assistant_authorities为0行不等于无授权；无精确当前行就保留failed，不换身份／授权代次绕过。代码只精确分类failed／blocked，不自动重读。
+- 脱敏边界补充（同日同事件）：结构探测也只能输出固定字段白名单／枚举计数，不能输出任意字典keys；token索引的键本身也可能是凭据。本轮一次结构探测曾误输出凭据索引键，仅在工具会话，未写代码／文件／GitHub，已向用户说明并改固定字段白名单。不得公开具体键值，也不因此无证据轮换账户或扩大生产变更。
+
 ## 模型执行与历史结果判断的责任边界（2026-11-04，用户暂缓）
 
 - 通用原则：可确定的流程、授权、状态及回执核验优先由代码控制；这不意味着把所有模型语义决策改为硬编码，或将自由文本补参自动解释为执行授权。
@@ -71,3 +77,6 @@
 - 原因与事件：正式多用户候选曾将同授权worker永久关闭，交叉复核遗漏其可恢复性；改为恢复后又发现内层listener仍可能晚写failed，过早读安全快照会绕过保护。同次候选评审已纠正，不重复计次、不称线上事故。
 - 范围与修复：登记锁下检查主线程、processor、session、consume／stderr／watcher及子进程全部退出；至少10秒退避，同绑定所有授权代次listener仅new／stopped且无cleanup_required才重建。旧unknown、撤销及未决投递保持，不靠换授权或重启绕过。
 - 验证：本次372项Python回归、Node14项及反向断言证据见 `/var/tmp/im-formal-monitor-sync-20261104/checks/test-summary.json` 和 `personal-events-cross-review.json`；部署状态见[#9](https://github.com/AcornFZA/word/issues/9)。AI复核仅补充实际测试与发布核验。
+
+- DEV双bus与授权补充（同日同事件）：同身份监控／审批曾各持独立上游，审批唯一AT与截图同秒但无mid，不能扩为精确消息级归因。共享必须由独立systemd owner持有，单consumer退出不杀他方，消费角色拒绝Discover自动fork；Broker全局latest token的CAS不防旧token晚覆盖，须同canonical scope锁内force中央当前proof至ready。业务数据／查询凭据隔离，授权变化等旧执行者全退，非空attempt或unknown不能靠换根绕过，最后consumer采用有界idle。
+- 实际退役与前置失败补充（同日同事件）：两个旧服务正常退出却仍有两本方SID active；原生忽略Delete错误且上层丢弃stderr，具体原因不能还原，cgroup／锁退役不等于云撤订。仅在同锁／同当前grant、持久dispatch意图后逐SID单次精确cancel，并以完整GET确认本方2缺失／无关1保留。旧Node PID1未响应默认TERM／INT，经审查的单次例外先pause，持有全部已知SQLite BEGIN IMMEDIATE锁，fresh核DB及已知JSON无在途并私有备份后，才精确KILL；真实137／非OOM／完整cgroup空按受控终止记录，不冒充应用优雅排空。新Compose仅image＋init:true。另对已证constructor前置目录失败、无scope／native提交的精确2行，本地failed→stopped保留attempts／subscription／updated及native预算，不清其它失败或unknown；新真实AT仍待验。收据及恢复见[#9](https://github.com/AcornFZA/word/issues/9)。
