@@ -93,3 +93,9 @@
 
 - DEV双bus与授权补充（同日同事件）：同身份监控／审批曾各持独立上游，审批唯一AT与截图同秒但无mid，不能扩为精确消息级归因。共享必须由独立systemd owner持有，单consumer退出不杀他方，消费角色拒绝Discover自动fork；Broker全局latest token的CAS不防旧token晚覆盖，须同canonical scope锁内force中央当前proof至ready。业务数据／查询凭据隔离，授权变化等旧执行者全退，非空attempt或unknown不能靠换根绕过，最后consumer采用有界idle。
 - 实际退役与前置失败补充（同日同事件）：两个旧服务正常退出却仍有两本方SID active；原生忽略Delete错误且上层丢弃stderr，具体原因不能还原，cgroup／锁退役不等于云撤订。仅在同锁／同当前grant、持久dispatch意图后逐SID单次精确cancel，并以完整GET确认本方2缺失／无关1保留。旧Node PID1未响应默认TERM／INT，经审查的单次例外先pause，持有全部已知SQLite BEGIN IMMEDIATE锁，fresh核DB及已知JSON无在途并私有备份后，才精确KILL；真实137／非OOM／完整cgroup空按受控终止记录，不冒充应用优雅排空。新Compose仅image＋init:true。另对已证constructor前置目录失败、无scope／native提交的精确2行，本地failed→stopped保留attempts／subscription／updated及native预算，不清其它失败或unknown；新真实AT仍待验。收据及恢复见[#9](https://github.com/AcornFZA/word/issues/9)。
+
+## 监控证据必须区分调用、授权与人工判断（2026-11-06）
+
+- 规则：测试夹具覆盖真实入口和来源目录，不能把网关与插件日志混放后假设都被采集；观察测试须断言真实进入合并路径。授权执行账号不是发言人，能力发现不是业务执行，受理不是完成，AI疑似不是人工确认。
+- 原因与修复：本轮候选的单目录夹具被来源校验排除插件行，曾掩盖同次调用去重未实际覆盖。已按独立来源目录修正夹具，晚到网关、伪造关联和未知发言人均核真实可观察结果；来源失败测试的正常详情必须可通过，避免别的校验挡住后造成假通过；未推断线上越权或重复执行。
+- 验证：101 `/var/tmp/im-observer-quality-20261106/checks/`：49项Python、33项观察台Node、67项Site测试；撤回去重、完整证据、授权/发言人分离、AI/人工状态分离、CAS、来源配置及精确Response归属保护均触发真实断言失败。首次云端AI写入与网页人工标记由D1读回确认，测试证据固定单列，不进入真实故障统计。
